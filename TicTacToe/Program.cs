@@ -15,7 +15,7 @@ namespace TicTacToe
 
         enum Cell
         {
-            None = 0, 
+            Empty = 0, 
             O = 1, 
             X = 2
         }
@@ -45,19 +45,30 @@ namespace TicTacToe
         #endregion
 
         #region Main Method
+
         static void Main(string[] args)
         {
             Cell[,] board = new Cell[3, 3];
             Player currentPlayer = Player.Player1;
             Command currentCommand;
+            string errorMessage = string.Empty;
 
             while (true)
             {
+                Console.Clear();
+
                 DrawBoard(board);
+
+                if (!string.IsNullOrWhiteSpace(errorMessage))
+                {
+                    PrintErrorMessage(errorMessage);
+                    errorMessage = string.Empty;
+                }
+                PrintHelpMessage();
 
                 if (!TryGetCommand(currentPlayer, out currentCommand))
                 {
-                    Console.Error.WriteLine("=> Invalid command. Valid are `q` or `<row><col>` as coordinates on the board.");
+                    errorMessage = "Invalid command. Try again!";
 
                     // continue with the next iteration of the loop (same player)
                     continue;
@@ -68,7 +79,7 @@ namespace TicTacToe
                     {
                         if (!TryPlay(currentPlayer, board, currentCommand.Location))
                         {
-                            Console.WriteLine("=> Position already played. Try again with different coordinates");
+                            errorMessage = "Position already played. Please try again with different coordinates!";
 
                             // continue with the next iteration of the loop (same player)
                             continue;
@@ -82,11 +93,20 @@ namespace TicTacToe
                     }
                 }
 
-                // check if the game is finished
+                // check if current player has one 
                 if (GameOver(board))
                 {
                     DrawBoard(board);
+
                     Console.WriteLine($"=> {currentPlayer} won!");
+
+                    // exit the infinite loop
+                    break;
+                }
+
+                if (!HasEmptyCells(board))
+                {
+                    Console.WriteLine($"=> Draw! Try again :)");
 
                     // exit the infinite loop
                     break;
@@ -111,7 +131,7 @@ namespace TicTacToe
             // and one character presentation when we print it on screen
             Hashtable cellMap = new Hashtable()
             {
-                { Cell.None,    ' ' },
+                { Cell.Empty,    ' ' },
                 { Cell.X,       'X' },
                 { Cell.O,       'O' }
             };
@@ -139,6 +159,24 @@ namespace TicTacToe
             // footer (bottom boarder + coordinates)
             Console.WriteLine("      #############");
             Console.WriteLine("        1   2   3   ");
+        }
+
+        static void PrintErrorMessage(string msg)
+        {
+            // we need to preserve the original foreground color
+            // so that we can return it after the error message in red is written
+            var originalForegroundColor = Console.ForegroundColor;
+
+            Console.ForegroundColor = ConsoleColor.Red;
+
+            Console.WriteLine($"=> {msg}");
+
+            Console.ForegroundColor = originalForegroundColor;
+        }
+
+        static void PrintHelpMessage()
+        {
+            Console.WriteLine("=> Enter `<row><col>` as coordinates on the board OR `q` to quit");
         }
 
         static bool TryGetCommand(Player currentPlayer, out Command command)
@@ -196,23 +234,38 @@ namespace TicTacToe
             // check if there is a vertical line of marks from the same kind
             for (byte x = 0; x < board.GetLength(0); x++)
             {
-                if (board[x, 0] != Cell.None && board[x, 0] == board[x, 1] && board[x, 1] == board[x, 2])
+                if (board[x, 0] != Cell.Empty && board[x, 0] == board[x, 1] && board[x, 1] == board[x, 2])
                     return true;
             }
 
             // check if there is a horizontal line of marks from the same kind
             for (byte y = 0; y < board.GetLength(0); y++)
             {
-                if (board[0, y] != Cell.None && board[0, y] == board[1, y] && board[1, y] == board[2, y])
+                if (board[0, y] != Cell.Empty && board[0, y] == board[1, y] && board[1, y] == board[2, y])
                     return true;
             }
 
             // check both diagonals 
-            if (board[0, 0] != Cell.None && board[0, 0] == board[1, 1] && board[1, 1] == board[2, 2]) return true;
-            if (board[0, 2] != Cell.None && board[0, 2] == board[1, 1] && board[1, 1] == board[2, 0]) return true;
+            if (board[0, 0] != Cell.Empty && board[0, 0] == board[1, 1] && board[1, 1] == board[2, 2]) return true;
+            if (board[0, 2] != Cell.Empty && board[0, 2] == board[1, 1] && board[1, 1] == board[2, 0]) return true;
 
 
             // if we reach this point all combinations are invalid
+            return false;
+        }
+
+        static bool HasEmptyCells(Cell[,] board)
+        {
+            // check that that there are still empty (e.g. Cell.Empty)
+            for (byte row = 0; row < board.GetLength(0); row++)
+            {
+                for (byte col = 0; col < board.GetLength(1); col++)
+                {
+                    if (board[row, col] == Cell.Empty)
+                        return true;
+                }
+            }
+
             return false;
         }
 
@@ -223,7 +276,7 @@ namespace TicTacToe
             //       people (e.g. users) who count from 1 :)
 
             // check if the position is already played
-            if (board[position.Row - 1,position.Col - 1] != Cell.None)
+            if (board[position.Row - 1,position.Col - 1] != Cell.Empty)
             {
                 return false;
             }
